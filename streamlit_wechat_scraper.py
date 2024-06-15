@@ -7,8 +7,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
 from io import BytesIO
+import os
 
 # Streamlit 页面配置
 st.title('WeChat Article Scraper')
@@ -24,8 +24,9 @@ if start_button:
     options.add_argument('--disable-dev-shm-usage')  # 禁用共享内存
     options.add_argument('--disable-gpu')  # 禁用GPU加速
 
-    # 使用 webdriver-manager 安装 ChromeDriver
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    # 手动指定 ChromeDriver 的路径
+    chrome_driver_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'chromedriver.exe')
+    driver = webdriver.Chrome(service=Service(chrome_driver_path), options=options)
 
     # 目标网址
     url = "https://weixin.sogou.com/"
