@@ -25,7 +25,7 @@ if start_button:
     options.add_argument('--disable-gpu')  # 禁用GPU加速
 
     # 手动指定 ChromeDriver 的路径
-    chrome_driver_path = 'chromedriver.exe'
+    chrome_driver_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../chromedriver.exe')
     driver = webdriver.Chrome(service=Service(chrome_driver_path), options=options)
 
     # 目标网址
