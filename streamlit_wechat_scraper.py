@@ -7,8 +7,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
 from io import BytesIO
+import os
 
 # Streamlit 页面配置
 st.title('WeChat Article Scraper')
@@ -24,8 +24,8 @@ if start_button:
     options.add_argument('--disable-dev-shm-usage')  # 禁用共享内存
     options.add_argument('--disable-gpu')  # 禁用GPU加速
 
-    # 设置明确的 ChromeDriver 版本
-    chrome_driver_path = ChromeDriverManager(version='114.0.5735.90').install()
+    # 手动指定 ChromeDriver 的路径
+    chrome_driver_path = os.path.join(os.getcwd(), 'chromedriver')
     driver = webdriver.Chrome(service=Service(chrome_driver_path), options=options)
 
     # 目标网址
