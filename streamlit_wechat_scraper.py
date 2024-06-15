@@ -24,8 +24,8 @@ if start_button:
     options.add_argument('--disable-dev-shm-usage')  # 禁用共享内存
     options.add_argument('--disable-gpu')  # 禁用GPU加速
 
-    # 显式设置 Chrome 浏览器的版本
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager(version="114.0.5735.90").install()), options=options)
+    # 使用 webdriver-manager 安装 ChromeDriver
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
     # 目标网址
     url = "https://weixin.sogou.com/"
