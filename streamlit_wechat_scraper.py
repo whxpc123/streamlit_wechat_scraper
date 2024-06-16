@@ -51,8 +51,8 @@ def download_image(img_url, image_count):
         raise DownloadException(f"Failed to download image {image_count}: {str(e)}")
 
 if start_button:
-    # 设置 ChromeDriver 路径
-    chromedriver_path = 'chromedriver.exe'  
+    # 设置 ChromeDriver 相对路径
+    chromedriver_path = os.path.join(os.path.dirname(__file__), 'chromedriver.exe')
     if not os.path.exists(chromedriver_path):
         st.error(f"ChromeDriver not found at {chromedriver_path}")
     else:
