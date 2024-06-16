@@ -1,84 +1,80 @@
-import time
-import pandas as pd
-import streamlit as st
-import requests
-from bs4 import BeautifulSoup
-from io import BytesIO
+# 目标网址
+url = "https://weixin.sogou.com/"
 
-# Streamlit 页面配置
-st.title('WeChat Article Scraper')
-keyword = st.text_input('Enter search keyword', 'AI绘画')
-num_pages = st.number_input('Enter number of pages to scrape', min_value=1, max_value=20, value=5)
-start_button = st.button('Start Scraping')
+# 打开目标网址
+driver.get(url)
+time.sleep(2)
 
-if start_button:
-    st.write(f'Starting to scrape articles for: {keyword}')
+# 输入关键字
+search_box = driver.find_element(By.ID, 'query')
+search_box.send_keys(keyword)
+search_box.send_keys(Keys.RETURN)
 
-    # 构造搜索 URL
-    search_url = f"https://weixin.sogou.com/weixin?type=2&query={keyword}&ie=utf8"
+# 等待搜索结果加载
+time.sleep(5)
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-    }
+# 初始化存储数据的列表
+data = []
 
-    data = []
+# 爬取指定页数的数据
+for page in range(1, num_pages + 1):
     try:
-        for page in range(1, num_pages + 1):
-            url = f"{search_url}&page={page}"
-            st.write(f"Scraping page {page}: {url}")
-            response = requests.get(url, headers=headers)
-            if response.status_code != 200:
-                st.error(f"Failed to retrieve search results: HTTP {response.status_code}")
-                raise Exception(f"Failed to retrieve search results: HTTP {response.status_code}")
+        articles = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'div.txt-box'))
+        )
 
-            soup = BeautifulSoup(response.text, 'html.parser')
-            articles = soup.find_all('div', class_='txt-box')
+        for index, article in enumerate(articles):
+            try:
+                st.write(f"Processing article {index + 1} on page {page}")
+                title_element = article.find_element(By.CSS_SELECTOR, 'h3')
+                title = title_element.text
+                link = title_element.find_element(By.TAG_NAME, 'a').get_attribute('href')
+                summary = article.find_element(By.CSS_SELECTOR, 'p.txt-info').text
 
-            if not articles:
-                st.write(f"No articles found on page {page}")
-                continue
+                # 有些文章可能没有来源信息，需要进行检查
+                source_element = article.find_elements(By.CSS_SELECTOR, 'div.s-p a')
+                source = article.find_element(By.XPATH, './/div[@class="s-p"]').text
+                # source = source_element[0].text if source_element else 'N/A'
 
-            for index, article in enumerate(articles):
-                try:
-                    st.write(f"Processing article {index + 1} on page {page}")
-                    title_element = article.find('h3')
-                    title = title_element.get_text(strip=True)
-                    link = title_element.find('a')['href']
-                    summary = article.find('p', class_='txt-info').get_text(strip=True)
-
-                    # 有些文章可能没有来源信息，需要进行检查
-                    source_element = article.find('div', class_='s-p')
-                    source = source_element.get_text(strip=True) if source_element else 'N/A'
-
-                    data.append({
-                        'Title': title,
-                        'Summary': summary,
-                        'Link': link,
-                        'Source': source
-                    })
-                except Exception as e:
-                    st.write(f"Error extracting article {index + 1} on page {page}: {e}")
-
+                data.append({
+                    'Title': title,
+                    'Summary': summary,
+                    'Link': link,
+                    'Source': source
+                })
+            except Exception as e:
+                st.write(f"Error extracting article {index + 1} on page {page}: {e}")
     except Exception as e:
-        st.error(f"Error occurred: {str(e)}")
+        st.write(f"Error finding articles on page {page}: {e}")
+        break
 
-    if data:
-        # 保存数据到Excel文件
-        current_time = time.strftime("%Y%m%d%H%M%S")
-        file_name = f"AI_微信_{current_time}.xlsx"
-        df = pd.DataFrame(data)
+    # 翻页
+    if page < num_pages:
+        try:
+            next_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.LINK_TEXT, '下一页'))
+            )
+            next_button.click()
+            time.sleep(5)
+        except Exception as e:
+            st.write(f"Error clicking next page: {e}")
+            break
 
-        # 将 DataFrame 保存到 BytesIO 对象中
-        towrite = BytesIO()
-        df.to_excel(towrite, index=False, engine='openpyxl')
-        towrite.seek(0)
+# 关闭浏览器
+driver.quit()
 
-        # 提供文件下载链接
-        st.download_button(label='📥 Download Excel File',
-                           data=towrite,
-                           file_name=file_name,
-                           mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+# 保存数据到Excel文件
+current_time = time.strftime("%Y%m%d%H%M%S")
+file_name = f"AI_微信_{current_time}.xlsx"
+df = pd.DataFrame(data)
 
-        st.write('Scraping completed! You can download the results as an Excel file.')
-    else:
-        st.write("No data found.")
+# 将 DataFrame 保存到 BytesIO 对象中
+towrite = BytesIO()
+df.to_excel(towrite, index=False, engine='openpyxl')
+towrite.seek(0)
+
+# 提供文件下载链接
+st.download_button(label='📥 Download Excel File',
+                   data=towrite,
+                   file_name=file_name,
+                   mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
