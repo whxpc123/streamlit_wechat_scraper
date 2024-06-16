@@ -7,6 +7,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 from io import BytesIO
 import base64
 import requests
@@ -51,15 +52,13 @@ def download_image(img_url, image_count):
         raise DownloadException(f"Failed to download image {image_count}: {str(e)}")
 
 if start_button:
-    # 设置 ChromeDriver 相对路径
-    chromedriver_path = os.path.join(os.path.dirname(__file__), 'chromedriver.exe')
-    if not os.path.exists(chromedriver_path):
-        st.error(f"ChromeDriver not found at {chromedriver_path}")
-    else:
+    try:
         # 初始化WebDriver
         options = webdriver.ChromeOptions()
-        # options.add_argument('--headless')  # 无头模式，不打开浏览器窗口
-        driver = webdriver.Chrome(service=Service(chromedriver_path), options=options)
+        options.add_argument('--headless')  # 无头模式，不打开浏览器窗口
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
         # 目标网址
         url = "https://weixin.sogou.com/"
@@ -140,3 +139,5 @@ if start_button:
                            data=towrite,
                            file_name=file_name,
                            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
