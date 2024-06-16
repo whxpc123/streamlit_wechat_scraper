@@ -9,6 +9,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from io import BytesIO
+import base64
+import requests
 
 # Streamlit 页面配置
 st.title('WeChat Article Scraper')
@@ -16,6 +18,8 @@ keyword = st.text_input('Enter search keyword', 'AI绘画')
 num_pages = st.number_input('Enter number of pages to scrape', min_value=1, max_value=20, value=5)
 start_button = st.button('Start Scraping')
 
+class DownloadException(Exception):
+    pass
 
 def download_image(img_url, image_count):
     try:
@@ -45,7 +49,6 @@ def download_image(img_url, image_count):
         with open("error_log.txt", "a") as log_file:
             log_file.write(f"Failed to download image {image_count}: {str(e)}\n")
         raise DownloadException(f"Failed to download image {image_count}: {str(e)}")
-
 
 if start_button:
     # 初始化WebDriver
@@ -88,8 +91,7 @@ if start_button:
 
                     # 有些文章可能没有来源信息，需要进行检查
                     source_element = article.find_elements(By.CSS_SELECTOR, 'div.s-p a')
-                    source = article.find_element(By.XPATH, './/div[@class="s-p"]').text
-
+                    source = source_element[0].text if source_element else 'Unknown'
 
                     data.append({
                         'Title': title,
@@ -133,4 +135,3 @@ if start_button:
                        data=towrite,
                        file_name=file_name,
                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-
