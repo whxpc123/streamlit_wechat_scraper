@@ -1,9 +1,9 @@
 import time
-import base64
 import pandas as pd
 import streamlit as st
 import requests
 from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import BytesIO
 
 # Streamlit 页面配置
@@ -11,9 +11,6 @@ st.title('WeChat Article Scraper')
 keyword = st.text_input('Enter search keyword', 'AI绘画')
 num_pages = st.number_input('Enter number of pages to scrape', min_value=1, max_value=20, value=5)
 start_button = st.button('Start Scraping')
-
-class DownloadException(Exception):
-    pass
 
 def download_image(img_url, image_count):
     try:
@@ -32,7 +29,7 @@ def download_image(img_url, image_count):
                 img_data = response.content
                 # 验证图片数据（使用常见的图片格式进行验证）
                 if not img_data.startswith(b'\xff\xd8') and not img_data.endswith(b'\xff\xd9') and \
-                        not img_data.startswith(b'\x89PNG') and not img_data.endswith(b'IEND\xaeB`\x82'):
+                   not img_data.startswith(b'\x89PNG') and not img_data.endswith(b'IEND\xaeB`\x82'):
                     raise DownloadException("Invalid image data")
                 # 保存图片
                 with open(f"AIGC/{image_count}.jpg", "wb") as file:
@@ -45,29 +42,33 @@ def download_image(img_url, image_count):
         raise DownloadException(f"Failed to download image {image_count}: {str(e)}")
 
 if start_button:
-    # 初始化存储数据的列表
-    data = []
+    st.write(f'Starting to scrape articles for: {keyword}')
 
-    # 爬取指定页数的数据
-    for page in range(1, num_pages + 1):
-        try:
-            # 生成请求 URL
-            url = f"https://weixin.sogou.com/weixin?query={keyword}&type=2&page={page}"
+    # 构造搜索 URL
+    search_url = f"https://weixin.sogou.com/weixin?type=2&query={keyword}&ie=utf8"
+
+    data = []
+    try:
+        for page in range(1, num_pages + 1):
+            url = f"{search_url}&page={page}"
             response = requests.get(url)
-            response.raise_for_status()  # 检查请求是否成功
+            if response.status_code != 200:
+                st.error(f"Failed to retrieve search results: HTTP {response.status_code}")
+                raise Exception(f"Failed to retrieve search results: HTTP {response.status_code}")
 
             soup = BeautifulSoup(response.text, 'html.parser')
-            articles = soup.select('div.txt-box')
+            articles = soup.find_all('div', class_='txt-box')
 
             for index, article in enumerate(articles):
                 try:
                     st.write(f"Processing article {index + 1} on page {page}")
-                    title_element = article.select_one('h3 a')
+                    title_element = article.find('h3')
                     title = title_element.text
-                    link = title_element['href']
-                    summary = article.select_one('p.txt-info').text
+                    link = title_element.find('a')['href']
+                    summary = article.find('p', class_='txt-info').text
 
-                    source_element = article.select_one('div.s-p')
+                    # 有些文章可能没有来源信息，需要进行检查
+                    source_element = article.find('div', class_='s-p')
                     source = source_element.text if source_element else 'N/A'
 
                     data.append({
@@ -78,9 +79,9 @@ if start_button:
                     })
                 except Exception as e:
                     st.write(f"Error extracting article {index + 1} on page {page}: {e}")
-        except Exception as e:
-            st.write(f"Error finding articles on page {page}: {e}")
-            break
+
+    except Exception as e:
+        st.error(f"Error occurred: {str(e)}")
 
     # 保存数据到Excel文件
     current_time = time.strftime("%Y%m%d%H%M%S")
@@ -97,3 +98,5 @@ if start_button:
                        data=towrite,
                        file_name=file_name,
                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+    st.write('Scraping completed! You can download the results as an Excel file.')
