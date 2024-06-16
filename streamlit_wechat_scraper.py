@@ -23,6 +23,9 @@ class DownloadException(Exception):
     pass
 
 def download_image(img_url, image_count):
+    if img_url is None:
+        raise DownloadException(f"Image URL is None for image {image_count}")
+    
     try:
         # 检查是否是base64编码的图片
         if img_url.startswith('data:image'):
