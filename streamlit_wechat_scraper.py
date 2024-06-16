@@ -1,8 +1,7 @@
 import time
 import pandas as pd
 import streamlit as st
-import requests
-from bs4 import BeautifulSoup
+from requests_html import HTMLSession
 from io import BytesIO
 
 # Streamlit 页面配置
@@ -19,23 +18,19 @@ def fetch_articles(query, num_pages):
         'page': 1
     }
     
+    session = HTMLSession()
     data = []
     
     for page in range(1, num_pages + 1):
         params['page'] = page
-        response = requests.get(base_url, params=params)
-        
-        if response.status_code != 200:
-            st.write(f"Failed to retrieve page {page}: HTTP {response.status_code}")
-            continue
-        
-        soup = BeautifulSoup(response.text, 'html.parser')
+        response = session.get(base_url, params=params)
+        response.html.render()
         
         # 保存页面内容到文件，以便调试
         with open(f"debug_page_{page}.html", "w", encoding="utf-8") as f:
-            f.write(response.text)
+            f.write(response.html.html)
         
-        articles = soup.select('div.txt-box')
+        articles = response.html.find('div.txt-box')
         
         if not articles:
             st.write(f"No articles found on page {page}. Please check debug_page_{page}.html for details.")
@@ -43,11 +38,11 @@ def fetch_articles(query, num_pages):
         
         for index, article in enumerate(articles):
             try:
-                title_element = article.select_one('h3 a')
+                title_element = article.find('h3 a', first=True)
                 title = title_element.text.strip()
-                link = title_element['href']
-                summary = article.select_one('p.txt-info').text.strip()
-                source_element = article.select_one('div.s-p a')
+                link = title_element.attrs['href']
+                summary = article.find('p.txt-info', first=True).text.strip()
+                source_element = article.find('div.s-p a', first=True)
                 source = source_element.text.strip() if source_element else 'N/A'
                 
                 data.append({
