@@ -51,8 +51,8 @@ def download_image(img_url, image_count):
                 raise DownloadException(f"Failed to download image {image_count}: HTTP {response.status_code}")
     except Exception as e:
         with open("error_log.txt", "a") as log_file:
-            log_file.write(f"Failed to download image {image_count}: {str(e)}\n")
-        raise DownloadException(f"Failed to download image {image_count}: {str(e)}")
+            log_file.write(f"Failed to download image {image_count} from {img_url}: {str(e)}\n")
+        raise DownloadException(f"Failed to download image {image_count} from {img_url}: {str(e)}")
 
 if start_button:
     try:
