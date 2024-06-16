@@ -17,12 +17,16 @@ if start_button:
     # 构造搜索 URL
     search_url = f"https://weixin.sogou.com/weixin?type=2&query={keyword}&ie=utf8"
 
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+
     data = []
     try:
         for page in range(1, num_pages + 1):
             url = f"{search_url}&page={page}"
             st.write(f"Scraping page {page}: {url}")
-            response = requests.get(url)
+            response = requests.get(url, headers=headers)
             if response.status_code != 200:
                 st.error(f"Failed to retrieve search results: HTTP {response.status_code}")
                 raise Exception(f"Failed to retrieve search results: HTTP {response.status_code}")
@@ -38,13 +42,13 @@ if start_button:
                 try:
                     st.write(f"Processing article {index + 1} on page {page}")
                     title_element = article.find('h3')
-                    title = title_element.text.strip()
+                    title = title_element.get_text(strip=True)
                     link = title_element.find('a')['href']
-                    summary = article.find('p', class_='txt-info').text.strip()
+                    summary = article.find('p', class_='txt-info').get_text(strip=True)
 
                     # 有些文章可能没有来源信息，需要进行检查
                     source_element = article.find('div', class_='s-p')
-                    source = source_element.text.strip() if source_element else 'N/A'
+                    source = source_element.get_text(strip=True) if source_element else 'N/A'
 
                     data.append({
                         'Title': title,
