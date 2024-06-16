@@ -24,10 +24,22 @@ def fetch_articles(query, num_pages):
     for page in range(1, num_pages + 1):
         params['page'] = page
         response = requests.get(base_url, params=params)
-        response.raise_for_status()
+        
+        if response.status_code != 200:
+            st.write(f"Failed to retrieve page {page}: HTTP {response.status_code}")
+            continue
         
         soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # 保存页面内容到文件，以便调试
+        with open(f"debug_page_{page}.html", "w", encoding="utf-8") as f:
+            f.write(response.text)
+        
         articles = soup.select('div.txt-box')
+        
+        if not articles:
+            st.write(f"No articles found on page {page}. Please check debug_page_{page}.html for details.")
+            continue
         
         for index, article in enumerate(articles):
             try:
